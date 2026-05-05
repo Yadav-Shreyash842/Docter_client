@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
-import { FaUser, FaEnvelope, FaLock, FaUserPlus } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaUserPlus, FaHeart, FaArrowLeft, FaUserMd } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import Loader from '../../components/Loader';
@@ -16,13 +16,22 @@ const Register = () => {
   });
 
   const password = watch('password');
+  const selectedRole = watch('role');
 
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      await registerUser(data);
-      toast.success('Registration successful!');
-      navigate('/dashboard');
+      const { confirmPassword, ...userData } = data;
+      const user = await registerUser(userData);
+      toast.success(`Account created! Welcome, ${user.name}!`);
+
+      if (user.role === 'doctor') {
+        navigate('/doctor/dashboard', { replace: true });
+      } else if (user.role === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate('/patient/dashboard', { replace: true });
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Registration failed');
     } finally {
@@ -31,162 +40,192 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-primary-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        <div className="text-center mb-8">
-          <motion.h1
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200 }}
-            className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent mb-2"
-          >
-            HealthCare+
-          </motion.h1>
-          <p className="text-gray-600 dark:text-gray-400">Create your account</p>
-        </div>
+    <div className="min-h-screen flex bg-gradient-to-br from-slate-900 via-primary-900 to-slate-900">
 
+      {/* Left Panel */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-600/20 to-purple-600/20" />
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-10 text-center"
         >
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Full Name
-              </label>
-              <div className="relative">
-                <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  {...register('name', { required: 'Name is required' })}
-                  type="text"
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  placeholder="John Doe"
-                />
+          <div className="flex items-center justify-center space-x-3 mb-8">
+            <div className="h-16 w-16 rounded-2xl bg-primary-500 flex items-center justify-center shadow-2xl">
+              <FaHeart className="text-white text-3xl" />
+            </div>
+            <h1 className="text-4xl font-bold text-white">HealthCare+</h1>
+          </div>
+          <h2 className="text-3xl font-bold text-white mb-4">Join Us Today</h2>
+          <p className="text-primary-200 text-lg max-w-md">
+            Create your account and start your healthcare journey with us.
+          </p>
+
+          {/* Role Cards */}
+          <div className="mt-10 space-y-4">
+            <div className={`p-4 rounded-2xl border-2 transition-all ${selectedRole === 'patient' ? 'border-primary-400 bg-primary-500/20' : 'border-white/10 bg-white/5'}`}>
+              <div className="flex items-center space-x-3">
+                <FaUser className="text-primary-300 text-xl" />
+                <div className="text-left">
+                  <p className="text-white font-semibold">Patient Account</p>
+                  <p className="text-primary-200 text-sm">Book appointments, view prescriptions</p>
+                </div>
               </div>
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
-              )}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  {...register('email', {
-                    required: 'Email is required',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email address',
-                    },
-                  })}
-                  type="email"
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  placeholder="you@example.com"
-                />
+            <div className={`p-4 rounded-2xl border-2 transition-all ${selectedRole === 'doctor' ? 'border-indigo-400 bg-indigo-500/20' : 'border-white/10 bg-white/5'}`}>
+              <div className="flex items-center space-x-3">
+                <FaUserMd className="text-indigo-300 text-xl" />
+                <div className="text-left">
+                  <p className="text-white font-semibold">Doctor Account</p>
+                  <p className="text-primary-200 text-sm">Manage appointments, add prescriptions</p>
+                </div>
               </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
-              )}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  {...register('password', {
-                    required: 'Password is required',
-                    minLength: {
-                      value: 6,
-                      message: 'Password must be at least 6 characters',
-                    },
-                  })}
-                  type="password"
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  placeholder="••••••••"
-                />
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  {...register('confirmPassword', {
-                    required: 'Please confirm your password',
-                    validate: value => value === password || 'Passwords do not match',
-                  })}
-                  type="password"
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  placeholder="••••••••"
-                />
-              </div>
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-500">{errors.confirmPassword.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Register as
-              </label>
-              <select
-                {...register('role')}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-              >
-                <option value="patient">Patient</option>
-                <option value="doctor">Doctor</option>
-              </select>
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader size="sm" />
-              ) : (
-                <>
-                  <FaUserPlus />
-                  <span>Create Account</span>
-                </>
-              )}
-            </motion.button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Already have an account?{' '}
-              <Link
-                to="/login"
-                className="font-medium text-primary-600 hover:text-primary-500 transition-colors"
-              >
-                Sign in
-              </Link>
-            </p>
           </div>
         </motion.div>
-      </motion.div>
+      </div>
+
+      {/* Right Panel - Register Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
+        <motion.div
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
+          className="w-full max-w-md"
+        >
+          <Link to="/" className="inline-flex items-center space-x-2 text-primary-300 hover:text-white mb-8 transition-colors">
+            <FaArrowLeft className="text-sm" />
+            <span className="text-sm">Back to Home</span>
+          </Link>
+
+          <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
+            <div className="text-center mb-6">
+              <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
+              <p className="text-primary-200">Fill in your details to get started</p>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+              {/* Role Selection */}
+              <div>
+                <label className="block text-sm font-medium text-primary-200 mb-2">
+                  I am a...
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {['patient', 'doctor'].map((role) => (
+                    <label
+                      key={role}
+                      className={`flex items-center justify-center space-x-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                        selectedRole === role
+                          ? 'border-primary-400 bg-primary-500/20 text-white'
+                          : 'border-white/20 text-primary-300 hover:border-white/40'
+                      }`}
+                    >
+                      <input
+                        {...register('role')}
+                        type="radio"
+                        value={role}
+                        className="hidden"
+                      />
+                      {role === 'patient' ? <FaUser /> : <FaUserMd />}
+                      <span className="capitalize font-medium">{role}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary-200 mb-2">Full Name</label>
+                <div className="relative">
+                  <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-300" />
+                  <input
+                    {...register('name', { required: 'Name is required' })}
+                    type="text"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-all"
+                    placeholder="John Doe"
+                  />
+                </div>
+                {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name.message}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary-200 mb-2">Email Address</label>
+                <div className="relative">
+                  <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-300" />
+                  <input
+                    {...register('email', {
+                      required: 'Email is required',
+                      pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: 'Invalid email' },
+                    })}
+                    type="email"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-all"
+                    placeholder="you@example.com"
+                  />
+                </div>
+                {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary-200 mb-2">Password</label>
+                <div className="relative">
+                  <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-300" />
+                  <input
+                    {...register('password', {
+                      required: 'Password is required',
+                      minLength: { value: 6, message: 'Minimum 6 characters' },
+                    })}
+                    type="password"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-all"
+                    placeholder="••••••••"
+                  />
+                </div>
+                {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary-200 mb-2">Confirm Password</label>
+                <div className="relative">
+                  <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-300" />
+                  <input
+                    {...register('confirmPassword', {
+                      required: 'Please confirm password',
+                      validate: v => v === password || 'Passwords do not match',
+                    })}
+                    type="password"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-all"
+                    placeholder="••••••••"
+                  />
+                </div>
+                {errors.confirmPassword && <p className="mt-1 text-sm text-red-400">{errors.confirmPassword.message}</p>}
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white py-3.5 rounded-xl font-semibold shadow-lg transition-all disabled:opacity-50 mt-2"
+              >
+                {loading ? <Loader size="sm" /> : (
+                  <>
+                    <FaUserPlus />
+                    <span>Create Account</span>
+                  </>
+                )}
+              </motion.button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-primary-200 text-sm">
+                Already have an account?{' '}
+                <Link to="/login" className="text-white font-semibold hover:underline">
+                  Sign In
+                </Link>
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };

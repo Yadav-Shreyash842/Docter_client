@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaCalendarAlt, FaUserMd, FaPrescriptionBottleAlt, FaChartLine } from 'react-icons/fa';
+import { FaCalendarAlt, FaUserMd, FaPrescriptionBottleAlt, FaHeartbeat, FaArrowRight } from 'react-icons/fa';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import StatsCard from '../../components/StatsCard';
 import AppointmentCard from '../../components/AppointmentCard';
 import { appointmentService } from '../../services/appointmentService';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import Loader from '../../components/Loader';
 
@@ -13,207 +14,147 @@ const PatientDashboard = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const chartData = [
-    { month: 'Jan', appointments: 2 },
-    { month: 'Feb', appointments: 3 },
-    { month: 'Mar', appointments: 1 },
-    { month: 'Apr', appointments: 4 },
-    { month: 'May', appointments: 2 },
-    { month: 'Jun', appointments: 5 },
+    { month: 'Jan', visits: 2 },
+    { month: 'Feb', visits: 3 },
+    { month: 'Mar', visits: 1 },
+    { month: 'Apr', visits: 4 },
+    { month: 'May', visits: 2 },
+    { month: 'Jun', visits: 5 },
   ];
 
-  useEffect(() => {
-    fetchAppointments();
-  }, []);
+  useEffect(() => { fetchAppointments(); }, []);
 
   const fetchAppointments = async () => {
     try {
       const data = await appointmentService.getPatientAppointments();
       setAppointments(data);
-    } catch (error) {
-      toast.error('Failed to fetch appointments');
+    } catch {
+      toast.error('Failed to load appointments');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancelAppointment = async (id) => {
+  const handleCancel = async (id) => {
     try {
       await appointmentService.cancelAppointment(id);
-      toast.success('Appointment cancelled successfully');
+      toast.success('Appointment cancelled');
       fetchAppointments();
-    } catch (error) {
-      toast.error('Failed to cancel appointment');
+    } catch {
+      toast.error('Failed to cancel');
     }
   };
 
-  const upcomingAppointments = appointments.filter(apt => apt.status === 'booked');
-  const completedAppointments = appointments.filter(apt => apt.status === 'completed');
+  const upcoming = appointments.filter(a => a.status === 'booked');
+  const completed = appointments.filter(a => a.status === 'completed');
 
   if (loading) return <Loader fullScreen />;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="space-y-6"
-    >
-      <div className="flex items-center justify-between">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Welcome back! Here's your health overview</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+            Hello, {user?.name?.split(' ')[0]} 👋
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Here's your health overview</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/doctors')}
-          className="flex items-center space-x-2 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-3 text-white font-medium shadow-lg hover:shadow-xl transition-all"
+          onClick={() => navigate('/patient/doctors')}
+          className="flex items-center space-x-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white px-6 py-3 rounded-xl font-medium shadow-lg shadow-teal-500/30"
         >
           <FaCalendarAlt />
           <span>Book Appointment</span>
         </motion.button>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title="Upcoming Appointments"
-          value={upcomingAppointments.length}
-          icon={FaCalendarAlt}
-          color="blue"
-          trend={12}
-        />
-        <StatsCard
-          title="Completed Visits"
-          value={completedAppointments.length}
-          icon={FaUserMd}
-          color="green"
-          trend={8}
-        />
-        <StatsCard
-          title="Prescriptions"
-          value="5"
-          icon={FaPrescriptionBottleAlt}
-          color="purple"
-          trend={-3}
-        />
-        <StatsCard
-          title="Health Score"
-          value="92%"
-          icon={FaChartLine}
-          color="orange"
-          trend={5}
-        />
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatsCard title="Upcoming" value={upcoming.length} icon={FaCalendarAlt} color="blue" />
+        <StatsCard title="Completed" value={completed.length} icon={FaUserMd} color="green" />
+        <StatsCard title="Prescriptions" value={completed.length} icon={FaPrescriptionBottleAlt} color="purple" />
+        <StatsCard title="Health Score" value="92%" icon={FaHeartbeat} color="orange" />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-lg border border-gray-100 dark:border-gray-700"
-          >
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Appointment History
-            </h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="month" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#fff',
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="appointments"
-                  stroke="#0EA5E9"
-                  strokeWidth={3}
-                  dot={{ fill: '#0EA5E9', r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </motion.div>
+      {/* Chart + Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Visit History</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} />
+              <YAxis stroke="#9CA3AF" fontSize={12} />
+              <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px', color: '#fff' }} />
+              <Line type="monotone" dataKey="visits" stroke="#14B8A6" strokeWidth={3} dot={{ fill: '#14B8A6', r: 5 }} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
 
-        <div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-lg border border-gray-100 dark:border-gray-700"
-          >
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Quick Actions
-            </h2>
-            <div className="space-y-3">
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
+          <div className="space-y-3">
+            {[
+              { label: 'Find a Doctor', sub: 'Browse specialists', path: '/patient/doctors', color: 'teal' },
+              { label: 'My Appointments', sub: 'View all bookings', path: '/patient/appointments', color: 'blue' },
+              { label: 'Prescriptions', sub: 'View medications', path: '/patient/prescriptions', color: 'purple' },
+            ].map((item) => (
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                onClick={() => navigate('/doctors')}
-                className="w-full rounded-lg bg-primary-50 dark:bg-primary-900/20 p-4 text-left hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
+                key={item.path}
+                whileHover={{ scale: 1.02, x: 4 }}
+                onClick={() => navigate(item.path)}
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all text-left"
               >
-                <p className="font-medium text-primary-900 dark:text-primary-100">Find a Doctor</p>
-                <p className="text-sm text-primary-600 dark:text-primary-400">Browse specialists</p>
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">{item.label}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{item.sub}</p>
+                </div>
+                <FaArrowRight className="text-gray-400 text-sm" />
               </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                onClick={() => navigate('/prescriptions')}
-                className="w-full rounded-lg bg-green-50 dark:bg-green-900/20 p-4 text-left hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
-              >
-                <p className="font-medium text-green-900 dark:text-green-100">View Prescriptions</p>
-                <p className="text-sm text-green-600 dark:text-green-400">Check your medications</p>
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                onClick={() => navigate('/appointments')}
-                className="w-full rounded-lg bg-purple-50 dark:bg-purple-900/20 p-4 text-left hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
-              >
-                <p className="font-medium text-purple-900 dark:text-purple-100">My Appointments</p>
-                <p className="text-sm text-purple-600 dark:text-purple-400">View all bookings</p>
-              </motion.button>
-            </div>
-          </motion.div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          Upcoming Appointments
-        </h2>
-        {upcomingAppointments.length === 0 ? (
-          <div className="rounded-2xl bg-white dark:bg-gray-800 p-12 text-center shadow-lg border border-gray-100 dark:border-gray-700">
-            <FaCalendarAlt className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">No upcoming appointments</p>
+      {/* Upcoming Appointments */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Upcoming Appointments</h2>
+          <button
+            onClick={() => navigate('/patient/appointments')}
+            className="text-sm text-teal-600 dark:text-teal-400 hover:underline"
+          >
+            View all
+          </button>
+        </div>
+
+        {upcoming.length === 0 ? (
+          <div className="rounded-2xl bg-white dark:bg-gray-800 p-10 text-center border border-dashed border-gray-200 dark:border-gray-700">
+            <FaCalendarAlt className="mx-auto text-5xl text-gray-300 dark:text-gray-600 mb-3" />
+            <p className="text-gray-500 dark:text-gray-400 mb-4">No upcoming appointments</p>
             <motion.button
               whileHover={{ scale: 1.05 }}
-              onClick={() => navigate('/doctors')}
-              className="mt-4 rounded-lg bg-primary-500 px-6 py-2 text-white"
+              onClick={() => navigate('/patient/doctors')}
+              className="px-6 py-2 bg-teal-500 text-white rounded-lg font-medium"
             >
               Book Now
             </motion.button>
           </div>
         ) : (
           <div className="grid gap-4">
-            {upcomingAppointments.slice(0, 3).map((appointment) => (
-              <AppointmentCard
-                key={appointment._id}
-                appointment={appointment}
-                onCancel={handleCancelAppointment}
-                userRole="patient"
-              />
+            {upcoming.slice(0, 3).map(apt => (
+              <AppointmentCard key={apt._id} appointment={apt} onCancel={handleCancel} userRole="patient" />
             ))}
           </div>
         )}
-      </motion.div>
+      </div>
     </motion.div>
   );
 };
